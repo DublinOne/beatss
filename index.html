@@ -188,22 +188,6 @@
             border-color: #ffeb3b;
         }
 
-        .chip {
-            padding: 5px 12px;
-            background: #333;
-            border: 1px solid #9b59b6;
-            color: #9b59b6;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .chip:hover {
-            background: #9b59b6;
-            color: white;
-        }
-
         .pattern-btns {
             display: flex;
             gap: 5px;
@@ -665,41 +649,6 @@
             box-shadow: 0 4px 10px rgba(231, 76, 60, 0.5);
         }
 
-        /* --- PROMPT CHIPS --- */
-        .chip {
-            background: #333;
-            color: #aaa;
-            border: 1px solid #444;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .chip:hover {
-            background: #444;
-            color: #fff;
-            border-color: #00ff80;
-        }
-
-        /* --- PERFORMANCE FX PADS --- */
-        .chip {
-            padding: 6px 12px;
-            background: #333;
-            border: 1px solid #9b59b6;
-            color: #9b59b6;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-weight: bold;
-        }
-
-        .chip:hover {
-            background: #9b59b6;
-            color: #fff;
-        }
-
         /* --- PERFORMANCE FX PADS --- */
         .performance-fx {
             background-color: #2a2a2a;
@@ -811,21 +760,21 @@
             box-shadow: 0 0 8px #ffffff;
         }
 
+        /* --- v1.0 TRANSFORMATIONS --- */
         .chip {
             padding: 5px 12px;
             background: #333;
-            border: 1px solid #00ff80;
-            color: #00ff80;
+            border: 1px solid #9b59b6;
+            color: #9b59b6;
             border-radius: 20px;
             font-size: 0.7rem;
             cursor: pointer;
             transition: all 0.2s;
-            white-space: nowrap;
         }
 
         .chip:hover {
-            background: #00ff80;
-            color: #1a1a1a;
+            background: #9b59b6;
+            color: white;
         }
 
         .advanced-ui {
@@ -1149,6 +1098,11 @@
         
         // ✨ 1. TEXT-TO-BEAT
         async function generateBeatFromText(prompt) {
+            if (!apiKey) {
+                showAIStatus('⚠️ Please set your API Key first!', '#f1c40f');
+                document.getElementById('apiModal').style.display = 'flex';
+                return;
+            }
             showAIStatus('✨ Gemini is generating a beat...', '#f1c40f');
             const payloadText = `Create a drum machine pattern based on this vibe/description: "${prompt}". The sequence length must be exactly ${sequenceLength} steps. We have 8 tracks: Kick, Snare, Hi-hat, Open hat, Bass, Lead, Perc, FX. Output JSON with a "tempo" (60-200) and a "patterns" array containing 8 arrays of booleans (true for a hit, false for silence), each array having exactly ${sequenceLength} elements.`;
             
@@ -1196,9 +1150,14 @@
 
         // ✨ 2. AI MIX ENGINEER
         async function runMixEngineer() {
+            if (!apiKey) {
+                showAIStatus('⚠️ Please set your API Key first!', '#f1c40f');
+                document.getElementById('apiModal').style.display = 'flex';
+                return;
+            }
             showAIStatus('✨ AI Mix Engineer is analyzing density...', '#00ff80');
             
-            const hits = patterns.map(track => track.filter(Boolean).length);
+            const hits = patterns[currentPatternIndex].map(track => track.filter(Boolean).length);
             const context = `Tempo: ${tempo} BPM. Hits per track -> Kick:${hits[0]}, Snare:${hits[1]}, Hihat:${hits[2]}, OpenHat:${hits[3]}, Bass:${hits[4]}, Lead:${hits[5]}, Perc:${hits[6]}, FX:${hits[7]}.`;
             
             const payloadText = `You are a professional audio mix engineer. Based on the following track density, provide optimal FX values to make this sound massive and balanced. ${context}`;
@@ -1243,8 +1202,13 @@
 
         // ✨ 3. ROAST MY BEAT
         async function roastMyBeat() {
+            if (!apiKey) {
+                showAIStatus('⚠️ Please set your API Key first!', '#f1c40f');
+                document.getElementById('apiModal').style.display = 'flex';
+                return;
+            }
             showAIStatus('✨ Gemini is listening to your beat...', '#ff4757');
-            const hits = patterns.map(track => track.filter(Boolean).length);
+            const hits = patterns[currentPatternIndex].map(track => track.filter(Boolean).length);
             const context = `Sequence length: ${sequenceLength}, Tempo: ${tempo} BPM. Hit counts -> Kick:${hits[0]}, Snare:${hits[1]}, Hihat:${hits[2]}, OpenHat:${hits[3]}, Bass:${hits[4]}, Lead:${hits[5]}, Perc:${hits[6]}, FX:${hits[7]}.`;
             
             const payload = {
@@ -1268,14 +1232,59 @@
 
         // ✨ 4. AI DRUM FILL
         async function generateDrumFill() {
-            // ... (rest of function unchanged)
+            if (!apiKey) {
+                showAIStatus('⚠️ Please set your API Key first!', '#f1c40f');
+                document.getElementById('apiModal').style.display = 'flex';
+                return;
+            }
+            showAIStatus('✨ Gemini is creating a drum fill...', '#f1c40f');
+            const currentPattern = patterns[currentPatternIndex];
+            const context = `Tempo: ${tempo} BPM. Current pattern structure: ${JSON.stringify(currentPattern.map(t => t.slice(0, 12).map(v => v ? 1 : 0)))}.`;
+            
+            const payloadText = `Based on the provided pattern (first 12 steps), generate an explosive drum fill for the final 4 steps (steps 13-16). Output JSON with a "fill" array containing 8 arrays of 4 booleans each.`;
+            
+            const schema = {
+                type: "OBJECT",
+                properties: {
+                    fill: {
+                        type: "ARRAY",
+                        items: { type: "ARRAY", items: { type: "BOOLEAN" } }
+                    }
+                }
+            };
+
+            const payload = {
+                contents: [{ parts: [{ text: payloadText + " Context: " + context }] }],
+                systemInstruction: { parts: [{ text: "You are a professional drummer and producer. Create high-energy, technically complex drum fills. Return JSON only." }] },
+                generationConfig: { responseMimeType: "application/json", responseSchema: schema }
+            };
+
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+                const result = await fetchWithRetry(url, { method: 'POST', body: JSON.stringify(payload) });
+                const data = JSON.parse(result.candidates[0].content.parts[0].text);
+                
+                // Apply fill to the last 4 steps
+                for(let i=0; i<8; i++) {
+                    if(data.fill && data.fill[i]) {
+                        for(let step=0; step<4; step++) {
+                            patterns[currentPatternIndex][i][12 + step] = data.fill[i][step];
+                        }
+                    }
+                }
+                updatePatternDisplay();
+                showAIStatus('✨ AI Drum Fill added!', '#00ff80');
+            } catch(e) {
+                console.error(e);
+                showAIStatus('❌ Fill generation failed.', '#e74c3c');
+            }
         }
 
-        // --- SHAREABLE LINKS & UI MODES ---
+        // --- PERSISTENCE & SHARING ---
         function getProjectState() {
             return {
-                p: patterns.map(pat => pat.map(track => track.map(v => v ? 1 : 0))),
-                vp: vocalPitches,
+                p: patterns,
+                v: vocalPitches,
                 t: tempo,
                 s: swing,
                 l: sequenceLength,
@@ -1284,55 +1293,368 @@
         }
 
         function loadProjectState(data) {
+            if (!data) return;
+            patterns = data.p || patterns;
+            vocalPitches = data.v || vocalPitches;
+            tempo = data.t || 140;
+            swing = data.s || 0;
+            sequenceLength = data.l || 16;
+
+            if (data.ts) {
+                data.ts.forEach((ts, i) => {
+                    if (tracks[i]) {
+                        tracks[i].volume = ts.v;
+                        tracks[i].muted = ts.m;
+                        tracks[i].soloed = ts.s;
+                        tracks[i].pitch = ts.p || 1.0;
+                        tracks[i].decay = ts.d || 0.5;
+                    }
+                });
+            }
+
+            document.getElementById('tempoSlider').value = tempo;
+            document.getElementById('tempoDisplay').textContent = tempo;
+            document.getElementById('swingSlider').value = swing;
+            document.getElementById('swingDisplay').textContent = swing;
+            document.getElementById('sequenceLengthSelect').value = sequenceLength;
+
+            generateUI();
+            updatePatternDisplay();
+            updateSequenceInfo();
+        }
+
+        function savePattern() {
+            const data = getProjectState();
+            localStorage.setItem('prodigyBeastPattern', JSON.stringify(data));
+            showAIStatus('💾 All patterns & melodies saved!', '#00ff80');
+        }
+
+        function loadPattern() {
+            const saved = localStorage.getItem('prodigyBeastPattern');
+            if (!saved) {
+                showAIStatus('❌ No saved pattern found.', '#e74c3c');
+                return;
+            }
             try {
-                patterns = data.p.map(pat => pat.map(track => track.map(v => v === 1)));
-                vocalPitches = data.vp || Array.from({length: 4}, () => Array(64).fill(0));
-                tempo = data.t || 140;
-                swing = data.s || 0;
-                sequenceLength = data.l || 16;
-                
-                if (data.ts) {
-                    data.ts.forEach((ts, i) => {
-                        if (tracks[i]) {
-                            tracks[i].volume = ts.v;
-                            tracks[i].muted = ts.m;
-                            tracks[i].soloed = ts.s;
-                            tracks[i].pitch = ts.p || 1.0;
-                            tracks[i].decay = ts.d || 0.5;
-                        }
-                    });
-                }
-                
-                generateUI();
-                updatePatternDisplay();
-                updateSequenceInfo();
-                showAIStatus('🔗 Shared Beat Loaded!', '#9b59b6');
-            } catch(e) {
-                console.error("Failed to load shared state", e);
+                loadProjectState(JSON.parse(saved));
+                showAIStatus('📂 Pattern loaded successfully!', '#00ff80');
+            } catch (e) {
+                console.error(e);
+                showAIStatus('❌ Load failed (corrupt data).', '#e74c3c');
             }
         }
 
-        function createShareLink() {
-            const state = getProjectState();
-            const encoded = btoa(JSON.stringify(state));
-            const url = window.location.origin + window.location.pathname + "#" + encoded;
-            
-            // Try to copy to clipboard
-            navigator.clipboard.writeText(url).then(() => {
-                showAIStatus('🔗 Link copied to clipboard!', '#9b59b6');
-            }).catch(() => {
-                showModal('🔗 SHARE LINK', 'Copy this link to share your beat:\n\n' + url);
-            });
+        function shareProject() {
+            try {
+                const state = getProjectState();
+                const encoded = btoa(JSON.stringify(state));
+                const url = window.location.origin + window.location.pathname + "#" + encoded;
+                
+                // Copy to clipboard
+                navigator.clipboard.writeText(url).then(() => {
+                    showAIStatus('🔗 Share link copied to clipboard!', '#9b59b6');
+                }).catch(() => {
+                    showModal('🔗 SHARE LINK', url);
+                });
+            } catch (e) {
+                console.error("Sharing failed:", e);
+                showAIStatus('❌ Failed to generate share link.', '#e74c3c');
+            }
         }
 
-        function checkUrlHash() {
+        function loadFromHash() {
             const hash = window.location.hash.substring(1);
-            if (hash && hash.length > 10) {
-                try {
-                    const decoded = JSON.parse(atob(hash));
-                    loadProjectState(decoded);
-                } catch(e) {}
+            if (!hash) return;
+            try {
+                const decoded = JSON.parse(atob(hash));
+                loadProjectState(decoded);
+                showAIStatus('✨ Project loaded from shared link!', '#9b59b6');
+            } catch (e) {
+                console.error("Hash load failed:", e);
             }
+        }
+
+        async function loadTrackSample(trackIndex, file) {
+            initAudio();
+            showAIStatus(`⏳ Loading sample for ${tracks[trackIndex].name}...`, '#f1c40f');
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                tracks[trackIndex].buffer = audioBuffer;
+                showAIStatus(`✅ ${tracks[trackIndex].name} sample loaded!`, '#00ff80');
+            } catch (e) {
+                console.error(e);
+                showAIStatus('❌ Failed to decode audio.', '#e74c3c');
+            }
+        }
+
+        // --- 🎧 AI DJ FESTIVAL SET WITH UPLOADED TRACKS & EXCLUSIVITY 🎧 ---
+        
+        // 1. File Upload Logic
+        document.getElementById('djAudioUpload').addEventListener('change', (e) => {
+            uploadedFiles = Array.from(e.target.files);
+            document.getElementById('uploadStatus').textContent = `${uploadedFiles.length} Tracks Loaded! Ready for DJ Mix.`;
+            showAIStatus(`Loaded ${uploadedFiles.length} MP3s!`, '#00ff80');
+        });
+
+        async function playUploadedTrack(file) {
+            if (currentAudioSource) {
+                try { currentAudioSource.stop(); } catch(e){}
+            }
+            const arrayBuffer = await file.arrayBuffer();
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            
+            const source = audioContext.createBufferSource();
+            source.buffer = audioBuffer;
+            
+            const trackGain = audioContext.createGain();
+            trackGain.gain.value = 1.0;
+            
+            source.connect(trackGain);
+            trackGain.connect(filterNode); // Route MP3 through our global FX (Filter, Dist, Reverb)!
+            
+            source.start();
+            currentAudioSource = source;
+            return source;
+        }
+
+        // 2. The Exclusivity (Takeover) Logic
+        function userTakeoverInteraction(e) {
+            if (djModeActive && aiInControl) {
+                // Ignore if they click the takeover or AI button itself
+                if (e.target.id === 'aiFestivalBtn' || e.target.id === 'takeoverBtn') return;
+                
+                // If they touch a slider or a drum pad...
+                if (e.target.tagName === 'INPUT' || e.target.classList.contains('step-button')) {
+                    triggerUserTakeover();
+                }
+            }
+        }
+
+        function triggerUserTakeover() {
+            aiInControl = false;
+            if (djInterval) clearInterval(djInterval);
+            
+            const overlay = document.getElementById('aiDjOverlay');
+            overlay.classList.add('takeover');
+            document.getElementById('aiDjTitle').textContent = "🚨 USER IN CONTROL 🚨";
+            document.getElementById('aiActionInfo').textContent = "AI locked out. Finish the mix manually!";
+            
+            showAIStatus('You wrestled control from the AI!', '#e74c3c');
+        }
+
+        function resetDjOverlay() {
+            djModeActive = false;
+            aiInControl = false;
+            if (djInterval) clearInterval(djInterval);
+            document.getElementById('aiDjOverlay').style.display = 'none';
+            document.getElementById('aiDjOverlay').classList.remove('takeover');
+            document.getElementById('aiFestivalBtn').innerHTML = '🎧 START AI DJ FESTIVAL SET & RECORD 🎧';
+            document.getElementById('aiFestivalBtn').classList.remove('recording');
+        }
+
+        // 3. The AI Generation & DJ Set Logic
+        async function startAiDjFestival() {
+            if (!apiKey) {
+                showAIStatus('⚠️ Please set your API Key first!', '#f1c40f');
+                document.getElementById('apiModal').style.display = 'flex';
+                return;
+            }
+            if (djModeActive) return;
+            initAudio();
+            
+            djModeActive = true;
+            aiInControl = true;
+
+            const btn = document.getElementById('aiFestivalBtn');
+            btn.innerHTML = '🚨 AI DJ RECORDING LIVE SET...';
+            btn.classList.add('recording');
+            
+            document.getElementById('aiDjOverlay').style.display = 'flex';
+            document.getElementById('aiDjTitle').textContent = "🎧 AI DJ IN CONTROL 🎧";
+            document.getElementById('aiActionInfo').textContent = "Analyzing tracks and building setlist...";
+
+            // Determine if we are mixing Uploaded Tracks OR Internal Presets
+            let isUsingUploads = uploadedFiles.length > 0;
+            let payloadText = "";
+
+            if (isUsingUploads) {
+                const filenames = uploadedFiles.map(f => f.name).join(", ");
+                payloadText = `I have uploaded these MP3 tracks: [${filenames}]. Order them into a mini DJ mix based on inferred genre/BPM. Give each track a play duration (in seconds, e.g. 15), and starting FX values for Filter (100-20000) and Distortion (0-100).`;
+            } else {
+                payloadText = "I have 4 internal drum machine presets: 'firestarter', 'breathe', 'voodoo', 'amen'. Create a sequence of 4 tracks mixing these presets. Give each a duration (seconds) and FX automations.";
+            }
+
+            const schema = {
+                type: "OBJECT",
+                properties: {
+                    setlist: {
+                        type: "ARRAY",
+                        items: {
+                            type: "OBJECT",
+                            properties: {
+                                trackNameOrPreset: { type: "STRING" },
+                                durationSeconds: { type: "INTEGER" },
+                                fxFilter: { type: "INTEGER", description: "100 to 20000" },
+                                fxDistortion: { type: "INTEGER", description: "0 to 100" }
+                            }
+                        }
+                    }
+                }
+            };
+
+            const payload = {
+                contents: [{ parts: [{ text: payloadText }] }],
+                systemInstruction: { parts: [{ text: "You are an AI DJ. Output strictly valid JSON matching the schema." }] },
+                generationConfig: { responseMimeType: "application/json", responseSchema: schema }
+            };
+
+            let plan;
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+                const result = await fetchWithRetry(url, { method: 'POST', body: JSON.stringify(payload) });
+                plan = JSON.parse(result.candidates[0].content.parts[0].text);
+            } catch(e) {
+                console.error("AI Mix Error:", e);
+                triggerUserTakeover();
+                document.getElementById('aiActionInfo').textContent = "AI Brain Fried. You must mix!";
+                return;
+            }
+
+            // Start High Quality WebM Recording
+            try {
+                exportRecorder = new MediaRecorder(exportDestination.stream, { mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: 320000 });
+            } catch(e) {
+                exportRecorder = new MediaRecorder(exportDestination.stream);
+            }
+            
+            recordedChunks = [];
+            exportRecorder.ondataavailable = e => { if(e.data.size > 0) recordedChunks.push(e.data); };
+            exportRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `AI_DJ_Festival_Master_${Date.now()}.webm`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            };
+            
+            exportRecorder.start();
+            if (!isPlaying) startSequencer();
+
+            // Execute the AI Setlist
+            let currentTrackIndex = 0;
+            
+            const executeNextTrack = async () => {
+                if (!djModeActive) return; // User stopped the sequencer
+                
+                if (currentTrackIndex >= plan.setlist.length) {
+                    if (aiInControl) {
+                        document.getElementById('aiActionInfo').textContent = "Set Finished! Thanks for raving.";
+                        setTimeout(stopSequencer, 3000);
+                    }
+                    return;
+                }
+
+                const track = plan.setlist[currentTrackIndex];
+                
+                // If AI is still in control, apply its track selection and FX
+                if (aiInControl) {
+                    document.getElementById('aiTrackInfo').textContent = `PLAYING: ${track.trackNameOrPreset}`;
+                    document.getElementById('aiActionInfo').textContent = `Tweaking FX: Filter ${track.fxFilter}Hz...`;
+                    
+                    if (isUsingUploads) {
+                        // Play uploaded MP3
+                        const file = uploadedFiles.find(f => f.name === track.trackNameOrPreset) || uploadedFiles[0];
+                        if (file) await playUploadedTrack(file);
+                        
+                        // Set sequencer volume to 0 so we only hear the MP3 and the FX
+                        tracks.forEach(t => t.volume = 0.0); 
+                    } else {
+                        // Play internal preset
+                        loadPreset(track.trackNameOrPreset, 'prodigy'); // simplified category search
+                    }
+
+                    // Apply AI FX
+                    document.getElementById('filterFreq').value = track.fxFilter;
+                    document.getElementById('distortion').value = track.fxDistortion;
+                    document.getElementById('filterFreq').dispatchEvent(new Event('input'));
+                    document.getElementById('distortion').dispatchEvent(new Event('input'));
+
+                    // AI randomly sweeps filter during the track
+                    let ticks = 0;
+                    djInterval = setInterval(() => {
+                        if (!aiInControl) { clearInterval(djInterval); return; }
+                        ticks++;
+                        let newFilter = Math.max(100, Math.min(20000, track.fxFilter + (Math.sin(ticks * 0.1) * 5000)));
+                        document.getElementById('filterFreq').value = newFilter;
+                        if (filterNode) filterNode.frequency.value = newFilter;
+                    }, 500);
+                }
+
+                // Wait for the track duration, then advance
+                setTimeout(() => {
+                    if (djInterval) clearInterval(djInterval);
+                    currentTrackIndex++;
+                    executeNextTrack();
+                }, track.durationSeconds * 1000);
+            };
+
+            executeNextTrack();
+        }
+
+        async function exportStems() {
+            if (!audioContext) initAudio();
+            showAIStatus('⏳ Preparing Stems Export (Sequential)...', '#f1c40f');
+            
+            const originalMutes = tracks.map(t => t.muted);
+            const originalSolos = tracks.map(t => t.soloed);
+            
+            // Solo each track one by one and record it
+            for (let i = 0; i < tracks.length; i++) {
+                showAIStatus(`⏳ Recording Stem ${i+1}/8: ${tracks[i].name}...`, '#f1c40f');
+                
+                // Set Solos
+                tracks.forEach((t, idx) => t.soloed = (idx === i));
+                
+                // Create a temporary recorder
+                const stemRecorder = new MediaRecorder(exportDestination.stream, { mimeType: 'audio/webm;codecs=opus' });
+                const chunks = [];
+                stemRecorder.ondataavailable = e => chunks.push(e.data);
+                
+                const promise = new Promise(resolve => {
+                    stemRecorder.onstop = () => {
+                        const blob = new Blob(chunks, { type: 'audio/webm' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `Stem_${tracks[i].name}_${Date.now()}.webm`;
+                        a.click();
+                        resolve();
+                    };
+                });
+
+                // Start sequencer and recorder for exactly one pattern length
+                const secondsPerPattern = (60.0 / tempo) * 4; // 16 steps = 4 beats
+                if (!isPlaying) startSequencer();
+                stemRecorder.start();
+                
+                await new Promise(r => setTimeout(r, secondsPerPattern * 1000 + 500));
+                
+                stemRecorder.stop();
+                await promise;
+            }
+
+            // Restore original states
+            tracks.forEach((t, idx) => {
+                t.muted = originalMutes[idx];
+                t.soloed = originalSolos[idx];
+            });
+            stopSequencer();
+            showAIStatus('✅ All Stems Exported!', '#00ff80');
         }
 
         // --- AUDIO ENGINE ---
@@ -1831,377 +2153,6 @@
             setTimeout(() => { statusEl.style.opacity = '0'; }, 3000);
         }
 
-        // --- PERSISTENCE & SHARING ---
-        function getProjectState() {
-            return {
-                p: patterns,
-                v: vocalPitches,
-                t: tempo,
-                s: swing,
-                l: sequenceLength,
-                ts: tracks.map(t => ({ v: t.volume, m: t.muted, s: t.soloed, p: t.pitch, d: t.decay }))
-            };
-        }
-
-        function loadProjectState(data) {
-            if (!data) return;
-            patterns = data.p || patterns;
-            vocalPitches = data.v || vocalPitches;
-            tempo = data.t || 140;
-            swing = data.s || 0;
-            sequenceLength = data.l || 16;
-
-            if (data.ts) {
-                data.ts.forEach((ts, i) => {
-                    if (tracks[i]) {
-                        tracks[i].volume = ts.v;
-                        tracks[i].muted = ts.m;
-                        tracks[i].soloed = ts.s;
-                        tracks[i].pitch = ts.p || 1.0;
-                        tracks[i].decay = ts.d || 0.5;
-                    }
-                });
-            }
-
-            document.getElementById('tempoSlider').value = tempo;
-            document.getElementById('tempoDisplay').textContent = tempo;
-            document.getElementById('swingSlider').value = swing;
-            document.getElementById('swingDisplay').textContent = swing;
-            document.getElementById('sequenceLengthSelect').value = sequenceLength;
-
-            generateUI();
-            updatePatternDisplay();
-            updateSequenceInfo();
-        }
-
-        function savePattern() {
-            const data = getProjectState();
-            localStorage.setItem('prodigyBeastPattern', JSON.stringify(data));
-            showAIStatus('💾 All patterns & melodies saved!', '#00ff80');
-        }
-
-        function loadPattern() {
-            const saved = localStorage.getItem('prodigyBeastPattern');
-            if (!saved) {
-                showAIStatus('❌ No saved pattern found.', '#e74c3c');
-                return;
-            }
-            try {
-                loadProjectState(JSON.parse(saved));
-                showAIStatus('📂 Pattern loaded successfully!', '#00ff80');
-            } catch (e) {
-                console.error(e);
-                showAIStatus('❌ Load failed (corrupt data).', '#e74c3c');
-            }
-        }
-
-        function shareProject() {
-            try {
-                const state = getProjectState();
-                const encoded = btoa(JSON.stringify(state));
-                window.location.hash = encoded;
-                
-                // Copy to clipboard
-                const url = window.location.href;
-                navigator.clipboard.writeText(url).then(() => {
-                    showAIStatus('🔗 Share link copied to clipboard!', '#9b59b6');
-                });
-            } catch (e) {
-                console.error("Sharing failed:", e);
-                showAIStatus('❌ Failed to generate share link.', '#e74c3c');
-            }
-        }
-
-        function loadFromHash() {
-            const hash = window.location.hash.substring(1);
-            if (!hash) return;
-            try {
-                const decoded = JSON.parse(atob(hash));
-                loadProjectState(decoded);
-                showAIStatus('✨ Project loaded from shared link!', '#9b59b6');
-            } catch (e) {
-                console.error("Hash load failed:", e);
-            }
-        }
-
-        async function loadTrackSample(trackIndex, file) {
-            initAudio();
-            showAIStatus(`⏳ Loading sample for ${tracks[trackIndex].name}...`, '#f1c40f');
-            try {
-                const arrayBuffer = await file.arrayBuffer();
-                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-                tracks[trackIndex].buffer = audioBuffer;
-                showAIStatus(`✅ ${tracks[trackIndex].name} sample loaded!`, '#00ff80');
-            } catch (e) {
-                console.error(e);
-                showAIStatus('❌ Failed to decode audio.', '#e74c3c');
-            }
-        }
-
-        // --- 🎧 AI DJ FESTIVAL SET WITH UPLOADED TRACKS & EXCLUSIVITY 🎧 ---
-        
-        // 1. File Upload Logic
-        document.getElementById('djAudioUpload').addEventListener('change', (e) => {
-            uploadedFiles = Array.from(e.target.files);
-            document.getElementById('uploadStatus').textContent = `${uploadedFiles.length} Tracks Loaded! Ready for DJ Mix.`;
-            showAIStatus(`Loaded ${uploadedFiles.length} MP3s!`, '#00ff80');
-        });
-
-        async function playUploadedTrack(file) {
-            if (currentAudioSource) {
-                try { currentAudioSource.stop(); } catch(e){}
-            }
-            const arrayBuffer = await file.arrayBuffer();
-            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-            
-            const source = audioContext.createBufferSource();
-            source.buffer = audioBuffer;
-            
-            const trackGain = audioContext.createGain();
-            trackGain.gain.value = 1.0;
-            
-            source.connect(trackGain);
-            trackGain.connect(filterNode); // Route MP3 through our global FX (Filter, Dist, Reverb)!
-            
-            source.start();
-            currentAudioSource = source;
-            return source;
-        }
-
-        // 2. The Exclusivity (Takeover) Logic
-        function userTakeoverInteraction(e) {
-            if (djModeActive && aiInControl) {
-                // Ignore if they click the takeover or AI button itself
-                if (e.target.id === 'aiFestivalBtn' || e.target.id === 'takeoverBtn') return;
-                
-                // If they touch a slider or a drum pad...
-                if (e.target.tagName === 'INPUT' || e.target.classList.contains('step-button')) {
-                    triggerUserTakeover();
-                }
-            }
-        }
-
-        function triggerUserTakeover() {
-            aiInControl = false;
-            if (djInterval) clearInterval(djInterval);
-            
-            const overlay = document.getElementById('aiDjOverlay');
-            overlay.classList.add('takeover');
-            document.getElementById('aiDjTitle').textContent = "🚨 USER IN CONTROL 🚨";
-            document.getElementById('aiActionInfo').textContent = "AI locked out. Finish the mix manually!";
-            
-            showAIStatus('You wrestled control from the AI!', '#e74c3c');
-        }
-
-        function resetDjOverlay() {
-            djModeActive = false;
-            aiInControl = false;
-            if (djInterval) clearInterval(djInterval);
-            document.getElementById('aiDjOverlay').style.display = 'none';
-            document.getElementById('aiDjOverlay').classList.remove('takeover');
-            document.getElementById('aiFestivalBtn').innerHTML = '🎧 START AI DJ FESTIVAL SET & RECORD 🎧';
-            document.getElementById('aiFestivalBtn').classList.remove('recording');
-        }
-
-        // 3. The AI Generation & DJ Set Logic
-        async function startAiDjFestival() {
-            if (djModeActive) return;
-            initAudio();
-            
-            djModeActive = true;
-            aiInControl = true;
-
-            const btn = document.getElementById('aiFestivalBtn');
-            btn.innerHTML = '🚨 AI DJ RECORDING LIVE SET...';
-            btn.classList.add('recording');
-            
-            document.getElementById('aiDjOverlay').style.display = 'flex';
-            document.getElementById('aiDjTitle').textContent = "🎧 AI DJ IN CONTROL 🎧";
-            document.getElementById('aiActionInfo').textContent = "Analyzing tracks and building setlist...";
-
-            // Determine if we are mixing Uploaded Tracks OR Internal Presets
-            let isUsingUploads = uploadedFiles.length > 0;
-            let payloadText = "";
-
-            if (isUsingUploads) {
-                const filenames = uploadedFiles.map(f => f.name).join(", ");
-                payloadText = `I have uploaded these MP3 tracks: [${filenames}]. Order them into a mini DJ mix based on inferred genre/BPM. Give each track a play duration (in seconds, e.g. 15), and starting FX values for Filter (100-20000) and Distortion (0-100).`;
-            } else {
-                payloadText = "I have 4 internal drum machine presets: 'firestarter', 'breathe', 'voodoo', 'amen'. Create a sequence of 4 tracks mixing these presets. Give each a duration (seconds) and FX automations.";
-            }
-
-            const schema = {
-                type: "OBJECT",
-                properties: {
-                    setlist: {
-                        type: "ARRAY",
-                        items: {
-                            type: "OBJECT",
-                            properties: {
-                                trackNameOrPreset: { type: "STRING" },
-                                durationSeconds: { type: "INTEGER" },
-                                fxFilter: { type: "INTEGER", description: "100 to 20000" },
-                                fxDistortion: { type: "INTEGER", description: "0 to 100" }
-                            }
-                        }
-                    }
-                }
-            };
-
-            const payload = {
-                contents: [{ parts: [{ text: payloadText }] }],
-                systemInstruction: { parts: [{ text: "You are an AI DJ. Output strictly valid JSON matching the schema." }] },
-                generationConfig: { responseMimeType: "application/json", responseSchema: schema }
-            };
-
-            let plan;
-            try {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-                const result = await fetchWithRetry(url, { method: 'POST', body: JSON.stringify(payload) });
-                plan = JSON.parse(result.candidates[0].content.parts[0].text);
-            } catch(e) {
-                console.error("AI Mix Error:", e);
-                triggerUserTakeover();
-                document.getElementById('aiActionInfo').textContent = "AI Brain Fried. You must mix!";
-                return;
-            }
-
-            // Start High Quality WebM Recording
-            try {
-                exportRecorder = new MediaRecorder(exportDestination.stream, { mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: 320000 });
-            } catch(e) {
-                exportRecorder = new MediaRecorder(exportDestination.stream);
-            }
-            
-            recordedChunks = [];
-            exportRecorder.ondataavailable = e => { if(e.data.size > 0) recordedChunks.push(e.data); };
-            exportRecorder.onstop = () => {
-                const blob = new Blob(recordedChunks, { type: 'audio/webm' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `AI_DJ_Festival_Master_${Date.now()}.webm`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            };
-            
-            exportRecorder.start();
-            if (!isPlaying) startSequencer();
-
-            // Execute the AI Setlist
-            let currentTrackIndex = 0;
-            
-            const executeNextTrack = async () => {
-                if (!djModeActive) return; // User stopped the sequencer
-                
-                if (currentTrackIndex >= plan.setlist.length) {
-                    if (aiInControl) {
-                        document.getElementById('aiActionInfo').textContent = "Set Finished! Thanks for raving.";
-                        setTimeout(stopSequencer, 3000);
-                    }
-                    return;
-                }
-
-                const track = plan.setlist[currentTrackIndex];
-                
-                // If AI is still in control, apply its track selection and FX
-                if (aiInControl) {
-                    document.getElementById('aiTrackInfo').textContent = `PLAYING: ${track.trackNameOrPreset}`;
-                    document.getElementById('aiActionInfo').textContent = `Tweaking FX: Filter ${track.fxFilter}Hz...`;
-                    
-                    if (isUsingUploads) {
-                        // Play uploaded MP3
-                        const file = uploadedFiles.find(f => f.name === track.trackNameOrPreset) || uploadedFiles[0];
-                        if (file) await playUploadedTrack(file);
-                        
-                        // Set sequencer volume to 0 so we only hear the MP3 and the FX
-                        tracks.forEach(t => t.volume = 0.0); 
-                    } else {
-                        // Play internal preset
-                        loadPreset(track.trackNameOrPreset, 'prodigy'); // simplified category search
-                    }
-
-                    // Apply AI FX
-                    document.getElementById('filterFreq').value = track.fxFilter;
-                    document.getElementById('distortion').value = track.fxDistortion;
-                    document.getElementById('filterFreq').dispatchEvent(new Event('input'));
-                    document.getElementById('distortion').dispatchEvent(new Event('input'));
-
-                    // AI randomly sweeps filter during the track
-                    let ticks = 0;
-                    djInterval = setInterval(() => {
-                        if (!aiInControl) { clearInterval(djInterval); return; }
-                        ticks++;
-                        let newFilter = Math.max(100, Math.min(20000, track.fxFilter + (Math.sin(ticks * 0.1) * 5000)));
-                        document.getElementById('filterFreq').value = newFilter;
-                        if (filterNode) filterNode.frequency.value = newFilter;
-                    }, 500);
-                }
-
-                // Wait for the track duration, then advance
-                setTimeout(() => {
-                    if (djInterval) clearInterval(djInterval);
-                    currentTrackIndex++;
-                    executeNextTrack();
-                }, track.durationSeconds * 1000);
-            };
-
-            executeNextTrack();
-        }
-
-        async function exportStems() {
-            if (!audioContext) initAudio();
-            showAIStatus('⏳ Preparing Stems Export (Sequential)...', '#f1c40f');
-            
-            const originalMutes = tracks.map(t => t.muted);
-            const originalSolos = tracks.map(t => t.soloed);
-            
-            // Solo each track one by one and record it
-            for (let i = 0; i < tracks.length; i++) {
-                showAIStatus(`⏳ Recording Stem ${i+1}/8: ${tracks[i].name}...`, '#f1c40f');
-                
-                // Set Solos
-                tracks.forEach((t, idx) => t.soloed = (idx === i));
-                
-                // Create a temporary recorder
-                const stemRecorder = new MediaRecorder(exportDestination.stream, { mimeType: 'audio/webm;codecs=opus' });
-                const chunks = [];
-                stemRecorder.ondataavailable = e => chunks.push(e.data);
-                
-                const promise = new Promise(resolve => {
-                    stemRecorder.onstop = () => {
-                        const blob = new Blob(chunks, { type: 'audio/webm' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `Stem_${tracks[i].name}_${Date.now()}.webm`;
-                        a.click();
-                        resolve();
-                    };
-                });
-
-                // Start sequencer and recorder for exactly one pattern length
-                const secondsPerPattern = (60.0 / tempo) * 4; // 16 steps = 4 beats
-                if (!isPlaying) startSequencer();
-                stemRecorder.start();
-                
-                await new Promise(r => setTimeout(r, secondsPerPattern * 1000 + 500));
-                
-                stemRecorder.stop();
-                await promise;
-            }
-
-            // Restore original states
-            tracks.forEach((t, idx) => {
-                t.muted = originalMutes[idx];
-                t.soloed = originalSolos[idx];
-            });
-            stopSequencer();
-            showAIStatus('✅ All Stems Exported!', '#00ff80');
-        }
-
         function setupEventListeners() {
             // Takeover Listeners
             document.addEventListener('mousedown', userTakeoverInteraction);
@@ -2300,33 +2251,20 @@
             toggleAdvancedBtn.addEventListener('click', () => {
                 showAdvanced = !showAdvanced;
                 advancedElements.forEach(el => {
-                    el.style.display = showAdvanced ? (el.tagName === 'DIV' && el.classList.contains('sliders') ? 'flex' : 'block') : 'none';
+                    if (showAdvanced) {
+                        if (el.classList.contains('sliders')) el.style.display = 'flex';
+                        else if (el.classList.contains('upload-container')) el.style.display = 'flex';
+                        else el.style.display = 'block';
+                    } else {
+                        el.style.display = 'none';
+                    }
                 });
                 toggleAdvancedBtn.textContent = showAdvanced ? '🛠 HIDE ADVANCED' : '🛠 SHOW ADVANCED';
                 toggleAdvancedBtn.style.color = showAdvanced ? '#00ff80' : '#aaa';
             });
 
             // --- SHAREABLE LINKS ---
-            document.getElementById('shareBtn').addEventListener('click', () => {
-                const state = {
-                    patterns,
-                    vocalPitches,
-                    tempo,
-                    swing,
-                    sequenceLength,
-                    trackSettings: tracks.map(t => ({ volume: t.volume, muted: t.muted, soloed: t.soloed, pitch: t.pitch, decay: t.decay }))
-                };
-                const encodedState = btoa(JSON.stringify(state));
-                const shareUrl = `${window.location.origin}${window.location.pathname}#${encodedState}`;
-                
-                // Copy to clipboard
-                navigator.clipboard.writeText(shareUrl).then(() => {
-                    showAIStatus('🔗 Link copied to clipboard!', '#9b59b6');
-                }).catch(err => {
-                    console.error('Could not copy link: ', err);
-                    showModal('🔗 SHARE LINK', shareUrl);
-                });
-            });
+            document.getElementById('shareBtn').addEventListener('click', shareProject);
 
             // --- PROMPT CHIPS ---
             document.querySelectorAll('.chip').forEach(chip => {
@@ -2550,6 +2488,7 @@
             updatePatternDisplay();
             updateSequenceInfo();
             loadPreset('firestarter', 'prodigy');
+            loadFromHash();
         });
     </script>
 </body>
