@@ -795,6 +795,7 @@
                 <button id="clearBtn">🗑 CLEAR</button>
                 <button id="saveBtn" class="save-btn">💾 SAVE</button>
                 <button id="loadBtn" class="load-btn">📂 LOAD</button>
+                <button id="apiSettingsBtn" style="background-color: #f1c40f; color: #1a1a1a;">🔑 API KEY</button>
             </div>
             <div class="pattern-btns">
                 <button class="pattern-btn active" data-index="0">A</button>
@@ -909,6 +910,20 @@
             </div>
         </div>
 
+        <!-- API Key Modal -->
+        <div id="apiModal" class="modal">
+            <div class="modal-content" style="border-color: #f1c40f; box-shadow: 0 0 30px rgba(241, 196, 15, 0.4);">
+                <h3>🔑 GEMINI API SETTINGS</h3>
+                <p>Paste your Google AI API Key here to enable Text-to-Beat, AI DJ, and Roasting features.</p>
+                <input type="password" id="apiKeyInput" placeholder="Enter API Key..." style="width: 90%; padding: 12px; margin: 15px 0; background: #333; border: 1px solid #f1c40f; color: #fff; border-radius: 5px; font-family: 'Roboto Mono', monospace;">
+                <div>
+                    <button id="saveApiKeyBtn" style="background-color: #f1c40f;">SAVE KEY</button>
+                    <button id="closeApiModalBtn" class="close-btn">CLOSE</button>
+                </div>
+                <p style="font-size: 0.7rem; color: #888; margin-top: 15px;">Your key is stored locally in your browser and never sent to our servers.</p>
+            </div>
+        </div>
+
         <!-- Custom Modal for LLM Interactions -->
         <div id="geminiModal" class="modal">
             <div class="modal-content">
@@ -1001,7 +1016,7 @@
         let currentCategory = 'prodigy';
 
         // --- GEMINI API INTEGRATION ---
-        const apiKey = "";
+        let apiKey = localStorage.getItem('gemini_api_key') || "";
         
         async function fetchWithRetry(url, options, maxRetries = 5) {
             let retries = 0;
@@ -2223,6 +2238,27 @@
             });
 
             document.getElementById('exportStemsBtn').addEventListener('click', exportStems);
+
+            // --- API SETTINGS LISTENERS ---
+            const apiModal = document.getElementById('apiModal');
+            const apiKeyInput = document.getElementById('apiKeyInput');
+            
+            document.getElementById('apiSettingsBtn').addEventListener('click', () => {
+                apiModal.style.display = 'flex';
+                apiKeyInput.value = apiKey;
+            });
+
+            document.getElementById('closeApiModalBtn').addEventListener('click', () => {
+                apiModal.style.display = 'none';
+            });
+
+            document.getElementById('saveApiKeyBtn').addEventListener('click', () => {
+                const newKey = apiKeyInput.value.trim();
+                apiKey = newKey;
+                localStorage.setItem('gemini_api_key', newKey);
+                apiModal.style.display = 'none';
+                showAIStatus(newKey ? '✅ API Key Saved!' : '🗑️ API Key Cleared', '#f1c40f');
+            });
 
             // --- PERFORMANCE FX PAD LISTENERS ---
             const stutterPad = document.getElementById('stutterPad');
